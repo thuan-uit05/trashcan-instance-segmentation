@@ -1,51 +1,73 @@
-=======================
-📦 MÔ TẢ FILE: model.py
-=======================
+README.txt
 
-🔹 Chức năng:
-File này định nghĩa một class `Model` để chạy inference cho mô hình YOLOv8 dạng TFLite (TensorFlow Lite), phục vụ cho tác vụ phân đoạn đối tượng (instance segmentation).
+## 📦 Danh sách các thư viện cần thiết
 
----------------------
-📚 Thư viện cần thiết:
----------------------
-- numpy
-- opencv-python
-- tensorflow >= 2.x (đã bao gồm tensorflow.lite)
+```
+ultralytics
+pycocotools
+opencv-python
+matplotlib
+tqdm
+PyYAML
+```
 
--------------------------------
-⚙️ Hướng dẫn cài đặt môi trường:
--------------------------------
-1. Tạo môi trường ảo (tuỳ chọn):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate   # Linux/macOS
-   venv\Scripts\activate      # Windows
-````
+Các thư viện hệ thống hoặc được sử dụng mặc định trên Google Colab:
 
-2. Cài đặt thư viện:
-
-   ```bash
-   pip install numpy opencv-python tensorflow
-   ```
+```
+tensorflow
+numpy
+shutil
+glob
+os
+json
+zipfile
+```
 
 ---
 
-## 🔍 Cách sử dụng (ví dụ đơn giản):
+## ⚙️ Hướng dẫn cài đặt và thiết lập môi trường
 
-```python
-from model import Model
-from PIL import Image
+Bước 1: Cài đặt thư viện
+```
+pip install ultralytics pycocotools opencv-python matplotlib tqdm PyYAML
+```
 
-model = Model("best_float32.tflite")   # Đường dẫn tới mô hình TFLite
-image = Image.open("image.jpg")
-results = model.predict(image)
+Bước 2: Upload dữ liệu và script
+- Upload lần lượt:
+  - File `original_data.zip` (chứa ảnh và annotation gốc)
+  - File `trash_can_coco.py` (script chuyển đổi annotation COCO)
+  - File `TrashCan.zip` (dữ liệu COCO dạng instance segmentation)
 
-for item in results:
-    class_id, confidence, *polygon = item
-    print(f"Class: {class_id}, Confidence: {confidence:.2f}, Polygon: {polygon[:6]}...")
+Bước 3: Tạo dataset chuẩn YOLOv8
+Script sẽ tự động:
+- Unzip dữ liệu
+- Chuyển annotation COCO về định dạng YOLO instance segmentation
+- Chuẩn hóa tên file ảnh `.jpg`
+- Lọc bỏ ảnh không có annotation
 
-## ⚠️ Lưu ý khi chạy mô hình:
+Bước 4: Huấn luyện mô hình YOLOv8-Seg
+- Mô hình sử dụng: `yolov8n-seg.pt`
+- Epochs: 50
+- Batch size: 64
+- Image size: 640
+```
+yolo task=segment mode=train model=yolov8n-seg.pt data=/content/data.yaml epochs=50 imgsz=640 batch=64
+```
 
-* File `best_float32.tflite` là mô hình đã được huấn luyện và convert đúng chuẩn YOLOv8-seg dạng TFLite.
-* Đầu vào ảnh cần là RGB, có thể là `PIL.Image` hoặc `numpy.ndarray`.
-* Đầu ra là danh sách các polygon đại diện cho vật thể phân đoạn trong ảnh, kèm theo class và độ tin cậy.
+Bước 5: Dự đoán trên tập validation
+```
+yolo task=segment mode=predict model=.../best.pt source=.../val/images
+```
+
+Bước 6: Xuất mô hình sang định dạng TFLite
+```
+yolo export model=.../best.pt format=tflite imgsz=320
+```
+
+---
+
+## 📝 Các lưu ý khác
+
+- Đảm bảo file JSON annotation có extension `.jpg` trùng khớp với ảnh thật.
+- Không để ảnh không có annotation trong thư mục train/val.
+- Mô hình xuất TFLite có thể dùng cho inference trên thiết bị nhúng (như Raspberry Pi hoặc Android).
